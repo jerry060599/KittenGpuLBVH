@@ -2,6 +2,7 @@
 #include <iostream>
 #include "lbvh.cuh"
 
-void main(int arg, char** args) {
+int main(int arg, char** args) {
 	Kitten::testLBVH();
+	return 0;
 }

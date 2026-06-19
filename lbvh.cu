@@ -1,7 +1,9 @@
 #include "lbvh.cuh"
 
+#if !defined(USE_HIP)
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
+#endif
 
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
@@ -302,7 +304,7 @@ namespace Kitten {
 			const uint32_t* queryIDs, const Bound<3, float>* queryAABBs, const int numQueries, int stackSize) {
 
 			// This is a bit ugly but we want to compile the kernel for all stack sizes.
-#define DISPATCH_QUERY(N) case N: lbvhQueryKernel<IGNORE_SELF, N> << <(numQueries + 127) / 128, 128 >> > (res, resCounter, maxRes, nodes, objIDs, queryIDs, queryAABBs, numQueries); break;
+#define DISPATCH_QUERY(N) case N: lbvhQueryKernel<IGNORE_SELF, N> <<<(numQueries + 127) / 128, 128 >>> (res, resCounter, maxRes, nodes, objIDs, queryIDs, queryAABBs, numQueries); break;
 			switch (stackSize) {
 			default:
 				DISPATCH_QUERY(32); DISPATCH_QUERY(31); DISPATCH_QUERY(30); DISPATCH_QUERY(29); DISPATCH_QUERY(28); DISPATCH_QUERY(27); DISPATCH_QUERY(26); DISPATCH_QUERY(25);
@@ -327,7 +329,7 @@ namespace Kitten {
 		cudaMemset(thrust::raw_pointer_cast(impl->d_flags.data()), 0, sizeof(uint32_t) * (numObjs - 1));
 
 		// Go through and merge all the aabbs up from the leaf nodes
-		LBVHKernels::mergeUpKernel << <(numObjs + 255) / 256, 256 >> > (
+		LBVHKernels::mergeUpKernel <<<(numObjs + 255) / 256, 256 >>> (
 			thrust::raw_pointer_cast(impl->d_nodes.data()),
 			thrust::raw_pointer_cast(impl->d_leafParents.data()),
 			thrust::raw_pointer_cast(impl->d_objs),
@@ -361,7 +363,7 @@ namespace Kitten {
 		});
 
 		// Compute morton codes. These don't have to be unique here.
-		LBVHKernels::mortonKernel<float> << <(numObjs + 255) / 256, 256 >> > (
+		LBVHKernels::mortonKernel<float> <<<(numObjs + 255) / 256, 256 >>> (
 			devicePtr, thrust::raw_pointer_cast(impl->d_morton.data()),
 			thrust::raw_pointer_cast(impl->d_objIDs.data()), rootBounds, numObjs);
 
@@ -369,7 +371,7 @@ namespace Kitten {
 		thrust::stable_sort_by_key(impl->d_morton.begin(), impl->d_morton.end(), impl->d_objIDs.begin());
 
 		// Build out the internal nodes
-		LBVHKernels::lbvhBuildInternalKernel << <(numInternalNodes + 255) / 256, 256 >> > (
+		LBVHKernels::lbvhBuildInternalKernel <<<(numInternalNodes + 255) / 256, 256 >>> (
 			thrust::raw_pointer_cast(impl->d_nodes.data()),
 			thrust::raw_pointer_cast(impl->d_leafParents.data()),
 			thrust::raw_pointer_cast(impl->d_morton.data()),

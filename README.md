@@ -12,6 +12,16 @@ and the following blog posts
 depending on [thrust](https://thrust.github.io/) and [glm](https://github.com/g-truc/glm).
 (DO NOT INSTALL GLM DIRECTLY FROM THE CURRENT WORKING BRANCH. Only install versions taged as stable releases or through vcpkg. When in doubt, use glm version 1.0.1#3.)
 
+## AMD GPU support
+The sources also compile for AMD GPUs through ROCm/HIP. The CUDA-specific runtime includes are guarded behind `USE_HIP`, so the same `lbvh.cu`/`lbvh.cuh` build either way. The repo ships a small CUDA-to-HIP shim (`cuda_to_hip.h`) that maps the `cudaXxx` runtime onto `hipXxx`, and a `CMakeLists.txt` that builds the `testLBVH()` sample standalone:
+
+```
+cmake -B build -DUSE_HIP=ON -DCMAKE_HIP_COMPILER=hipcc -DCMAKE_HIP_ARCHITECTURES=gfx1100
+cmake --build build
+```
+
+`CMAKE_HIP_ARCHITECTURES` selects the target GPU (e.g. `gfx90a`, `gfx1100`, `gfx1201`). The shim is force-included on each HIP translation unit by the CMake build. The default NVIDIA/CUDA path is unchanged: configuring without `USE_HIP` (the default) builds with the CUDA toolchain, just as the Visual Studio solution does.
+
 ## Implementation
 This is partly rewritten/referenced from https://github.com/ToruNiina/lbvh to be much more optimized, simpler to use, and, importantly, bug free. It was written as a module of KittenEngine, a simulation framework I wrote for research. 
 

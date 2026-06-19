@@ -1,8 +1,10 @@
 #pragma once
 // Jerry Hsu, 2024
 
+#if !defined(USE_HIP)
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
+#endif
 
 #include <memory>
 #include <KittenEngine/includes/modules/Common.h>

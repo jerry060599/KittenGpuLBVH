@@ -1,9 +1,26 @@
 #pragma once
 // Jerry Hsu, 2021
 
-#define KITTEN_FUNC_DECL 
+#define KITTEN_FUNC_DECL
 
-#if __has_include("cuda_runtime.h")
+#if defined(USE_HIP)
+// ROCm/HIP build: cuda_to_hip.h is force-included ahead of this header, so it
+// has already pulled <hip/hip_runtime.h> and aliased the cuda* surface to hip*.
+#include <stdio.h>
+#include <stdlib.h>
+
+#undef KITTEN_FUNC_DECL
+#define KITTEN_FUNC_DECL __device__ __host__
+
+#define checkCudaErrors(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+inline void gpuAssert(cudaError_t code, const char* file, int line, bool abort = true) {
+	if (code != cudaSuccess) {
+		fprintf(stderr, "GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+		if (abort) exit(code);
+	}
+}
+
+#elif __has_include("cuda_runtime.h")
 #pragma nv_diag_suppress esa_on_defaulted_function_ignored
 #include <cuda_runtime.h>
 #include <stdio.h>
